@@ -1118,7 +1118,7 @@ void placeOrder() {
          return; //--- Exit function
       }
       if(tp >= price) { //--- Check if TP is below entry
-         Print("Invalid TP for ", selected_order_type, ": TP=", tp, " must be below Entry=", price); // AMPK--- Print error message
+         Print("Invalid TP for ", selected_order_type, ": TP=", tp, " must be below Entry=", price); //--- Print error message
          return; //--- Exit function
       }
    }
