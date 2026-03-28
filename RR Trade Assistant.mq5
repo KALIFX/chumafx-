@@ -92,8 +92,9 @@ void createDivider(string objName, int x, int y, int width) {
    ObjectSetInteger(0, objName, OBJPROP_COLOR, divider_clr);
    ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, divider_clr);
    ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, divider_clr);
-   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_NONE);
-   ObjectSetInteger(0, objName, OBJPROP_WIDTH, 0);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, objName, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, objName, OBJPROP_BACK, false);
    ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, objName, OBJPROP_HIDDEN, true);
