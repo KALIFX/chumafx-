@@ -79,8 +79,8 @@ bool update_Text(string name, string val) {
 } //--- Function to update text of an object
 
 void createDivider(string objName, int x, int y, int width) {
-   color divider_clr = UI_WHITE;
-   int divider_h = MathMax(2, GetPanelScaledPx(2));
+   color divider_clr = C'119,136,153'; // LightSlateGray
+   int divider_h = MathMax(1, GetPanelScaledPx(1));
 
    if(!ObjectCreate(0, objName, OBJ_RECTANGLE_LABEL, 0, 0, 0))
       return;
