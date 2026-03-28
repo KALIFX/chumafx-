@@ -40,6 +40,9 @@ input double PANEL_SCALE_PERCENT = 90.0; // Scale the whole control panel size (
 #define SL_EDIT_FIELD  "SL_EDIT_FIELD" //--- SL price edit field
 #define TP_EDIT_FIELD  "TP_EDIT_FIELD" //--- TP price edit field
 #define RISK_VALUE_EDIT "RISK_VALUE_EDIT" //--- Risk/Lot value edit field
+#define DIVIDER_TOP_INPUTS "DIVIDER_TOP_INPUTS" //--- Divider above Risk/Entry fields
+#define DIVIDER_MID_INPUTS "DIVIDER_MID_INPUTS" //--- Divider between SL/TP and Sell/Buy rows
+#define DIVIDER_BOTTOM_ACTIONS "DIVIDER_BOTTOM_ACTIONS" //--- Divider below Cancel/Send row
 
 #define REC1 "REC1" //--- Define constant for rectangle 1 (TP) object name
 #define REC2 "REC2" //--- Define constant for rectangle 2 object name
@@ -72,6 +75,24 @@ bool update_Text(string name, string val) {
    }
    return ObjectSetString(0, name, OBJPROP_TEXT, val);
 } //--- Function to update text of an object
+
+void createDivider(string objName, int x, int y, int width) {
+   if(!ObjectCreate(0, objName, OBJ_RECTANGLE_LABEL, 0, 0, 0))
+      return;
+
+   ObjectSetInteger(0, objName, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, objName, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, objName, OBJPROP_XSIZE, width);
+   ObjectSetInteger(0, objName, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, clrWhite);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrWhite);
+   ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, objName, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, objName, OBJPROP_BACK, false);
+   ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, objName, OBJPROP_HIDDEN, true);
+}
 
 datetime EXPIRY_DATE = D'2028.02.01 00:00';  // trial expiry
 
@@ -368,6 +389,9 @@ void SetPanelMinimized(bool minimized) {
    ObjectSetInteger(0, SELL_LIMIT_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, PLACE_ORDER_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_MID_INPUTS, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_BOTTOM_ACTIONS, OBJPROP_TIMEFRAMES, panel_tf);
 
    ChartRedraw(0);
 }
@@ -945,6 +969,7 @@ void createControlPanel() {
 
    createButton(MINIMIZE_BTN, CharToString(240), panel_x + GetPanelScaledPx(212), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
    createButton(CLOSE_BTN, CharToString(251), panel_x + GetPanelScaledPx(246), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
+   createDivider(DIVIDER_TOP_INPUTS, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(36), GetPanelScaledPx(266));
 
    createButton(RISK_EDIT, "Risk %", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(42), GetPanelScaledPx(86), GetPanelScaledPx(32), clrWhite, C'060,060,066', GetPanelScaledFontSize(10), C'085,085,095', false, "Segoe UI");
 
@@ -1002,6 +1027,7 @@ void createControlPanel() {
 
    createButton(SELL_BTN, "Sell", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
    createButton(BUY_BTN, "Buy", panel_x + GetPanelScaledPx(174), panel_y + GetPanelScaledPx(124), GetPanelScaledPx(102), GetPanelScaledPx(32), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
+   createDivider(DIVIDER_MID_INPUTS, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(118), GetPanelScaledPx(266));
 
    createButton(SELL_STOP_BTN, "Sell Stop", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'130,040,045', GetPanelScaledFontSize(12), C'185,085,090', false, "Segoe UI");
    createButton(BUY_STOP_BTN, "Buy Stop", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(164), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'025,095,065', GetPanelScaledFontSize(12), C'070,150,110', false, "Segoe UI");
@@ -1010,6 +1036,7 @@ void createControlPanel() {
 
    createButton(CANCEL_BTN, "Cancel", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(250), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'060,060,066', GetPanelScaledFontSize(12), C'095,095,105', false, "Segoe UI");
    createButton(PLACE_ORDER_BTN, "Send", panel_x + GetPanelScaledPx(146), panel_y + GetPanelScaledPx(250), GetPanelScaledPx(130), GetPanelScaledPx(34), clrWhite, C'020,110,165', GetPanelScaledFontSize(12), C'070,160,210', false, "Segoe UI");
+   createDivider(DIVIDER_BOTTOM_ACTIONS, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(287), GetPanelScaledPx(266));
 
    UpdateRiskModeButtonText();
    SetPanelMinimized(false);
@@ -1034,6 +1061,9 @@ void showTool() {
    ObjectSetInteger(0, SELL_LIMIT_BTN, OBJPROP_BACK, false); //--- Hide Sell Limit button
    ObjectSetInteger(0, PLACE_ORDER_BTN, OBJPROP_BACK, false); //--- Hide Place Order button
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_BACK, false); //--- Hide Cancel button
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_BOTTOM_ACTIONS, OBJPROP_BACK, false);
    ObjectSetInteger(0, MINIMIZE_BTN, OBJPROP_BACK, false); //--- Hide Minimize button
    ObjectSetInteger(0, CLOSE_BTN, OBJPROP_BACK, false); //--- Hide Close button
 
@@ -1198,6 +1228,9 @@ void showPanel() {
    ObjectSetInteger(0, SELL_LIMIT_BTN, OBJPROP_BACK, false); //--- Show Sell Limit button
    ObjectSetInteger(0, PLACE_ORDER_BTN, OBJPROP_BACK, false); //--- Show Place Order button
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_BACK, false); //--- Show Cancel button
+   ObjectSetInteger(0, DIVIDER_TOP_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID_INPUTS, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_BOTTOM_ACTIONS, OBJPROP_BACK, false);
    ObjectSetInteger(0, MINIMIZE_BTN, OBJPROP_BACK, false); //--- Show Minimize button
    ObjectSetInteger(0, CLOSE_BTN, OBJPROP_BACK, false); //--- Show Close button
 
@@ -1493,5 +1526,8 @@ void deletePanel() {
    ObjectDelete(0, ENTRY_EDIT);
    ObjectDelete(0, SL_EDIT_FIELD);
    ObjectDelete(0, TP_EDIT_FIELD);
+   ObjectDelete(0, DIVIDER_TOP_INPUTS);
+   ObjectDelete(0, DIVIDER_MID_INPUTS);
+   ObjectDelete(0, DIVIDER_BOTTOM_ACTIONS);
    ChartRedraw(0); //--- Redraw chart
 }
