@@ -78,6 +78,7 @@ bool update_Text(string name, string val) {
 
 void createDivider(string objName, int x, int y, int width) {
    color divider_clr = C'255,255,255';
+   int divider_h = MathMax(2, GetPanelScaledPx(2));
 
    if(!ObjectCreate(0, objName, OBJ_RECTANGLE_LABEL, 0, 0, 0))
       return;
@@ -85,13 +86,12 @@ void createDivider(string objName, int x, int y, int width) {
    ObjectSetInteger(0, objName, OBJPROP_XDISTANCE, x);
    ObjectSetInteger(0, objName, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, objName, OBJPROP_XSIZE, width);
-   ObjectSetInteger(0, objName, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
+   ObjectSetInteger(0, objName, OBJPROP_YSIZE, divider_h);
    ObjectSetInteger(0, objName, OBJPROP_COLOR, divider_clr);
    ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, divider_clr);
    ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, divider_clr);
-   ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
-   ObjectSetInteger(0, objName, OBJPROP_WIDTH, 1);
-   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_NONE);
+   ObjectSetInteger(0, objName, OBJPROP_WIDTH, 0);
    ObjectSetInteger(0, objName, OBJPROP_BACK, false);
    ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, objName, OBJPROP_HIDDEN, true);
