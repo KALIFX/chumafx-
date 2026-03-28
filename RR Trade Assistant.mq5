@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025, kalifx"
 #property link      "https://kalifxlab.com"
-#property version   "1.01"
+#property version   "1.13"
 #property description "RR Trade Assistant"
 #property description "Smart order management panel,"
 #property description "Visual Risk-Reward Tool with draggable chart blocks"
@@ -17,7 +17,7 @@
 
 input double RR_TOOL_SCALE_PERCENT = 75.0; //--- Scale the RR tool size (100 = default)
 input int RR_TOOL_FONT_SIZE = 8; //--- Font size for RR tool blocks
-input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size (100 = default)
+input double PANEL_SCALE_PERCENT = 90.0; // Scale the whole control panel size (100 = default)
 
 // Control panel object names
 #define PANEL_BG       "PANEL_BG" //--- Define constant for panel background object name
@@ -40,6 +40,9 @@ input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size 
 #define SL_EDIT_FIELD  "SL_EDIT_FIELD" //--- SL price edit field
 #define TP_EDIT_FIELD  "TP_EDIT_FIELD" //--- TP price edit field
 #define RISK_VALUE_EDIT "RISK_VALUE_EDIT" //--- Risk/Lot value edit field
+#define DIVIDER_TOP    "DIVIDER_TOP"
+#define DIVIDER_MID    "DIVIDER_MID"
+#define DIVIDER_BOTTOM "DIVIDER_BOTTOM"
 
 #define REC1 "REC1" //--- Define constant for rectangle 1 (TP) object name
 #define REC2 "REC2" //--- Define constant for rectangle 2 object name
@@ -53,7 +56,25 @@ input double PANEL_SCALE_PERCENT = 100.0; // Scale the whole control panel size 
 
 double Get_Price_d(string name) { return ObjectGetDouble(0, name, OBJPROP_PRICE); } //--- Function to get price as double for an object
 string Get_Price_s(string name) { return DoubleToString(ObjectGetDouble(0, name, OBJPROP_PRICE), _Digits); } //--- Function to get price as string with proper digits
-string update_Text(string name, string val) { return (string)ObjectSetString(0, name, OBJPROP_TEXT, val); } //--- Function to update text of an object
+bool update_Text(string name, string val) {
+   bool is_rr_block = (name == REC1 || name == REC2 || name == REC3 || name == REC4 || name == REC5);
+   if(is_rr_block) {
+      string txt_obj = name + "_TXT";
+      if(ObjectFind(0, txt_obj) < 0)
+         return false;
+
+      int xd = (int)ObjectGetInteger(0, name, OBJPROP_XDISTANCE);
+      int yd = (int)ObjectGetInteger(0, name, OBJPROP_YDISTANCE);
+      int xs = (int)ObjectGetInteger(0, name, OBJPROP_XSIZE);
+      int ys = (int)ObjectGetInteger(0, name, OBJPROP_YSIZE);
+
+      ObjectSetInteger(0, txt_obj, OBJPROP_ANCHOR, ANCHOR_CENTER);
+      ObjectSetInteger(0, txt_obj, OBJPROP_XDISTANCE, xd + xs / 2);
+      ObjectSetInteger(0, txt_obj, OBJPROP_YDISTANCE, yd + ys / 2);
+      return ObjectSetString(0, txt_obj, OBJPROP_TEXT, val);
+   }
+   return ObjectSetString(0, name, OBJPROP_TEXT, val);
+} //--- Function to update text of an object
 
 datetime EXPIRY_DATE = D'2028.02.01 00:00';  // trial expiry
 
@@ -80,6 +101,7 @@ CTrade obj_Trade; //--- Trade object for executing trading operations
 int panel_x = 10, panel_y = 30; //--- Panel position coordinates
 bool is_tool_dragging = false; //--- True while user drags RR tool blocks
 bool panel_minimized = false; //--- Control panel collapsed state
+bool suppress_chart_redraw = false; //--- Batch object updates without intermediate redraw flicker
 
 void SyncComputedRR();
 void SyncPanelInputsFromLines();
@@ -96,6 +118,7 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
                   color clrTxt, color clrBG, int fontsize = 12,
                   color clrBorder = clrNONE, bool isBack = false, string font = "Calibri");
 bool createHL(string objName, datetime time1, double price1, color clr);
+bool createDivider(string objName, int xD, int yD, int xS, int yS, color clrLine = clrWhite);
 void deleteObjects();
 void deletePanel();
 void SetPanelMinimized(bool minimized);
@@ -107,8 +130,11 @@ int GetScaledPx(int base_px);
 int GetScaledFontSize(int base_size);
 bool IsMarketOrderMode();
 void ShiftRRToolY(int delta_y);
+void ClampMarketLinesToViewport();
 void SyncMarketEntryWithLine();
 void SyncMarketSLTPLinesWithRRTool();
+void ApplyPanelInputsToRRTool();
+void EnsureMarketOrderLevelsValid();
 int GetPanelScaledPx(int base_px);
 int GetPanelScaledFontSize(int base_size);
 
@@ -256,6 +282,9 @@ void SetPanelMinimized(bool minimized) {
    ObjectSetInteger(0, SELL_LIMIT_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, PLACE_ORDER_BTN, OBJPROP_TIMEFRAMES, panel_tf);
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_TOP, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_MID, OBJPROP_TIMEFRAMES, panel_tf);
+   ObjectSetInteger(0, DIVIDER_BOTTOM, OBJPROP_TIMEFRAMES, panel_tf);
 
    ChartRedraw(0);
 }
@@ -777,6 +806,10 @@ void createControlPanel() {
    createButton(MINIMIZE_BTN, CharToString(240), panel_x + GetPanelScaledPx(212), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
    createButton(CLOSE_BTN, CharToString(251), panel_x + GetPanelScaledPx(246), panel_y + GetPanelScaledPx(6), GetPanelScaledPx(30), GetPanelScaledPx(24), clrWhite, C'048,048,052', GetPanelScaledFontSize(14), C'048,048,052', false, "Wingdings");
 
+   createDivider(DIVIDER_TOP, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(34), GetPanelScaledPx(266), GetPanelScaledPx(1), clrWhite);
+   createDivider(DIVIDER_MID, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(118), GetPanelScaledPx(266), GetPanelScaledPx(1), clrWhite);
+   createDivider(DIVIDER_BOTTOM, panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(288), GetPanelScaledPx(266), GetPanelScaledPx(1), clrWhite);
+
    createButton(RISK_EDIT, "Risk %", panel_x + GetPanelScaledPx(10), panel_y + GetPanelScaledPx(42), GetPanelScaledPx(86), GetPanelScaledPx(32), clrWhite, C'060,060,066', GetPanelScaledFontSize(10), C'085,085,095', false, "Segoe UI");
 
    ObjectCreate(0, RISK_VALUE_EDIT, OBJ_EDIT, 0, 0, 0);
@@ -866,6 +899,9 @@ void showTool() {
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_BACK, false); //--- Hide Cancel button
    ObjectSetInteger(0, MINIMIZE_BTN, OBJPROP_BACK, false); //--- Hide Minimize button
    ObjectSetInteger(0, CLOSE_BTN, OBJPROP_BACK, false); //--- Hide Close button
+   ObjectSetInteger(0, DIVIDER_TOP, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_BOTTOM, OBJPROP_BACK, false);
 
    // Create main tool 150 pixels from the right edge
    int chart_width = (int)ChartGetInteger(0, CHART_WIDTH_IN_PIXELS); //--- Get chart width
@@ -1008,6 +1044,9 @@ void showPanel() {
    ObjectSetInteger(0, CANCEL_BTN, OBJPROP_BACK, false); //--- Show Cancel button
    ObjectSetInteger(0, MINIMIZE_BTN, OBJPROP_BACK, false); //--- Show Minimize button
    ObjectSetInteger(0, CLOSE_BTN, OBJPROP_BACK, false); //--- Show Close button
+   ObjectSetInteger(0, DIVIDER_TOP, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_MID, OBJPROP_BACK, false);
+   ObjectSetInteger(0, DIVIDER_BOTTOM, OBJPROP_BACK, false);
 
    // Reset panel state
    update_Text(PLACE_ORDER_BTN, "Send"); //--- Reset Send button text
@@ -1079,7 +1118,7 @@ void placeOrder() {
          return; //--- Exit function
       }
       if(tp >= price) { //--- Check if TP is below entry
-         Print("Invalid TP for ", selected_order_type, ": TP=", tp, " must be below Entry=", price); // AMPK--- Print error message
+         Print("Invalid TP for ", selected_order_type, ": TP=", tp, " must be below Entry=", price); //--- Print error message
          return; //--- Exit function
       }
    }
@@ -1172,6 +1211,33 @@ bool createButton(string objName, string text, int xD, int yD, int xS, int yS,
 }
 
 //+------------------------------------------------------------------+
+//| Create divider                                                   |
+//+------------------------------------------------------------------+
+bool createDivider(string objName, int xD, int yD, int xS, int yS, color clrLine = clrWhite) {
+   ResetLastError();
+   if(!ObjectCreate(0, objName, OBJ_RECTANGLE_LABEL, 0, 0, 0)) {
+      Print(__FUNCTION__, ": Failed to create divider: Error Code: ", GetLastError());
+      return false;
+   }
+
+   ObjectSetInteger(0, objName, OBJPROP_XDISTANCE, xD);
+   ObjectSetInteger(0, objName, OBJPROP_YDISTANCE, yD);
+   ObjectSetInteger(0, objName, OBJPROP_XSIZE, xS);
+   ObjectSetInteger(0, objName, OBJPROP_YSIZE, MathMax(1, yS));
+   ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, clrLine);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrLine);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, objName, OBJPROP_BACK, false);
+   ObjectSetInteger(0, objName, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, objName, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, objName, OBJPROP_ZORDER, 99);
+
+   if(!suppress_chart_redraw)
+      ChartRedraw(0);
+   return true;
+}
+
+//+------------------------------------------------------------------+
 //| Create horizontal line                                           |
 //+------------------------------------------------------------------+
 bool createHL(string objName, datetime time1, double price1, color clr) {
@@ -1228,5 +1294,8 @@ void deletePanel() {
    ObjectDelete(0, ENTRY_EDIT);
    ObjectDelete(0, SL_EDIT_FIELD);
    ObjectDelete(0, TP_EDIT_FIELD);
+   ObjectDelete(0, DIVIDER_TOP);
+   ObjectDelete(0, DIVIDER_MID);
+   ObjectDelete(0, DIVIDER_BOTTOM);
    ChartRedraw(0); //--- Redraw chart
 }
