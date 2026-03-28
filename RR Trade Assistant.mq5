@@ -77,6 +77,8 @@ bool update_Text(string name, string val) {
 } //--- Function to update text of an object
 
 void createDivider(string objName, int x, int y, int width) {
+   color divider_clr = C'255,255,255';
+
    if(!ObjectCreate(0, objName, OBJ_RECTANGLE_LABEL, 0, 0, 0))
       return;
 
@@ -84,8 +86,9 @@ void createDivider(string objName, int x, int y, int width) {
    ObjectSetInteger(0, objName, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, objName, OBJPROP_XSIZE, width);
    ObjectSetInteger(0, objName, OBJPROP_YSIZE, MathMax(1, GetPanelScaledPx(1)));
-   ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, clrWhite);
-   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, clrWhite);
+   ObjectSetInteger(0, objName, OBJPROP_COLOR, divider_clr);
+   ObjectSetInteger(0, objName, OBJPROP_BGCOLOR, divider_clr);
+   ObjectSetInteger(0, objName, OBJPROP_BORDER_COLOR, divider_clr);
    ObjectSetInteger(0, objName, OBJPROP_STYLE, STYLE_SOLID);
    ObjectSetInteger(0, objName, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, objName, OBJPROP_BORDER_TYPE, BORDER_FLAT);
