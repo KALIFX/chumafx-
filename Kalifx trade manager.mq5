@@ -93,7 +93,6 @@ bool   g_BeRuntimeEnabled = true;
 bool   g_TrailingRuntimeEnabled = false;
 bool   g_ForceBEStart = false;
 bool   g_ForceTSStart = false;
-bool   g_TSActiveByButton = false;
 
 int    g_PendingDirection = 0; // 1=buy, -1=sell, 0=none
 
@@ -453,7 +452,7 @@ void ManageOpenPositions()
       {
          double startDistance = TS_StartPoints * point;
 
-         if(g_TSActiveByButton || g_ForceTSStart || profitDistance >= startDistance)
+         if(g_ForceTSStart || profitDistance >= startDistance)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -484,7 +483,7 @@ void ManageOpenPositions()
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
-         if(g_TSActiveByButton || g_ForceTSStart || profitDistance >= tsTrigger)
+         if(g_ForceTSStart || profitDistance >= tsTrigger)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -598,7 +597,6 @@ void ProcessPanelButtonStates()
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
       g_TrailingRuntimeEnabled = true; // keep TS runtime enabled
-      g_TSActiveByButton = true;       // keep trailing active as price moves
       g_ForceTSStart = true;           // force immediate TS start once
       ManageOpenPositions();           // apply immediately on click
       UpdatePanelState();
