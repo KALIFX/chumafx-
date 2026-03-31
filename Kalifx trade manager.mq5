@@ -116,6 +116,15 @@ string LABEL_ENTRY   = "KFX_LABEL_ENTRY";
 
 void CloseAllTrades(bool filterByMagic = true);
 void CloseTradesByType(long positionType, bool filterByMagic = true);
+void CreatePanelButton(const string name,
+                       const string text,
+                       const int x,
+                       const int y,
+                       const int w,
+                       const int h,
+                       color bgColor,
+                       color textColor,
+                       const int fontSize);
 
 int GetDayOfYear(datetime t)
 {
@@ -1025,6 +1034,32 @@ void UpdateEntryLineLabels()
 
    ObjectSetString(0, LABEL_SL, OBJPROP_TEXT, slTxt);
    ObjectSetString(0, LABEL_TP, OBJPROP_TEXT, tpTxt);
+}
+
+//+------------------------------------------------------------------+
+void CreatePanelButton(const string name,
+                       const string text,
+                       const int x,
+                       const int y,
+                       const int w,
+                       const int h,
+                       color bgColor,
+                       color textColor,
+                       const int fontSize)
+{
+   ObjectCreate(0, name, OBJ_BUTTON, 0, 0, 0);
+   ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, name, OBJPROP_XSIZE, w);
+   ObjectSetInteger(0, name, OBJPROP_YSIZE, h);
+   ObjectSetString(0, name, OBJPROP_TEXT, text);
+   ObjectSetInteger(0, name, OBJPROP_BGCOLOR, bgColor);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, textColor);
+   ObjectSetInteger(0, name, OBJPROP_BORDER_COLOR, C'71,85,105');
+   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, fontSize);
+   ObjectSetInteger(0, name, OBJPROP_STATE, false);
+   ObjectSetInteger(0, name, OBJPROP_ZORDER, 1000);
 }
 
 //+------------------------------------------------------------------+
