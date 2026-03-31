@@ -614,17 +614,9 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0 && ObjectGetInteger(0, BTN_START_BE, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_BE, OBJPROP_STATE, false);
-      if(g_BeRuntimeEnabled)
-      {
-         g_BeRuntimeEnabled = false;
-         g_ForceBEStart = false;
-      }
-      else
-      {
-         g_BeRuntimeEnabled = true;
-         g_ForceBEStart = true; // override BE start threshold one time
-         ManageOpenPositions(); // apply immediately on click
-      }
+      g_BeRuntimeEnabled = true;  // ensure BE logic remains enabled
+      g_ForceBEStart = true;      // force immediate BE+offset application
+      ManageOpenPositions();      // apply immediately on click
       UpdatePanelState();
       return;
    }
@@ -1293,7 +1285,7 @@ void UpdatePanelState()
       ObjectSetString(0, BTN_START_TS, OBJPROP_TEXT, g_TrailingRuntimeEnabled ? "Stop TS" : "Start TS");
 
    if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0)
-      ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, g_BeRuntimeEnabled ? "Stop BE" : "Start BE");
+      ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, "Start BE");
 
    if(EntryLinesExist())
       UpdateEntryLineLabels();
