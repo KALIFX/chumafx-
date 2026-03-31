@@ -66,6 +66,7 @@ input bool   AutoResumeNextDay       = false;   // Auto resume panel trading on 
 // --- Order Panel Inputs
 input string sepPanel          = "=== Order Panel Settings ==="; //===
 input bool   EnablePanel       = true;     // Show trading panel?
+input bool   EnableActionPanel = true;     // Show management panel below main panel?
 input bool   StartWithRiskMode = true;     // Start mode as Risk % (true) / Lot (false)
 input double DefaultRiskPct    = 1.0;      // Default Risk % value
 input double DefaultFixedLot   = 0.10;     // Default fixed lot value
@@ -88,6 +89,8 @@ bool   g_UseRiskMode = true;
 bool   g_UsePendingMode = false; // false=market, true=pending
 double g_RiskPercent = 1.0;
 double g_FixedLot    = 0.10;
+bool   g_BeRuntimeEnabled = true;
+bool   g_TrailingRuntimeEnabled = false;
 
 int    g_PendingDirection = 0; // 1=buy, -1=sell, 0=none
 
@@ -98,12 +101,21 @@ string BTN_MODE      = "KFX_BTN_MODE";
 string EDIT_SIZE     = "KFX_EDIT_SIZE";
 string BTN_SEND      = "KFX_BTN_SEND";
 string BTN_CANCEL    = "KFX_BTN_CANCEL";
+string PANEL2_BG     = "KFX_PANEL2_BG";
+string BTN_CLOSE_ALL = "KFX_BTN_CLOSE_ALL";
+string BTN_CLOSE_BUY = "KFX_BTN_CLOSE_BUY";
+string BTN_CLOSE_SELL= "KFX_BTN_CLOSE_SELL";
+string BTN_START_TS  = "KFX_BTN_START_TS";
+string BTN_START_BE  = "KFX_BTN_START_BE";
 string LINE_SL       = "KFX_LINE_SL";
 string LINE_TP       = "KFX_LINE_TP";
 string LINE_ENTRY    = "KFX_LINE_ENTRY";
 string LABEL_SL      = "KFX_LABEL_SL";
 string LABEL_TP      = "KFX_LABEL_TP";
 string LABEL_ENTRY   = "KFX_LABEL_ENTRY";
+
+void CloseAllTrades(bool filterByMagic = true);
+void CloseTradesByType(long positionType, bool filterByMagic = true);
 
 int GetDayOfYear(datetime t)
 {
@@ -122,6 +134,8 @@ int OnInit()
    g_UseRiskMode = StartWithRiskMode;
    g_RiskPercent = MathMax(0.01, DefaultRiskPct);
    g_FixedLot    = MathMax(0.01, DefaultFixedLot);
+   g_BeRuntimeEnabled = EnableBE;
+   g_TrailingRuntimeEnabled = (EnableTrailingPoints || EnableTrailingPercent);
 
    trade.SetExpertMagicNumber((uint)MagicNumber);
    trade.SetDeviationInPoints(SlippagePoints);
@@ -384,7 +398,7 @@ void OnTick()
          }
       }
 
-      if(EnableBE)
+      if(g_BeRuntimeEnabled && EnableBE)
       {
          double beTrigger = distanceToTP * BE_TP_Percent / 100.0;
          if(profitDistance >= beTrigger)
@@ -418,7 +432,7 @@ void OnTick()
          }
       }
 
-      if(EnableTrailingPoints)
+      if(g_TrailingRuntimeEnabled && EnableTrailingPoints)
       {
          double startDistance = TS_StartPoints * point;
 
@@ -449,7 +463,7 @@ void OnTick()
          }
       }
 
-      if(EnableTrailingPercent)
+      if(g_TrailingRuntimeEnabled && EnableTrailingPercent)
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
@@ -535,6 +549,43 @@ void ProcessPanelButtonStates()
          g_PendingDirection = 0;
          DeleteEntryLines();
       }
+      UpdatePanelState();
+      return;
+   }
+
+   if(EnableActionPanel && ObjectFind(0, BTN_CLOSE_ALL) >= 0 && ObjectGetInteger(0, BTN_CLOSE_ALL, OBJPROP_STATE))
+   {
+      ObjectSetInteger(0, BTN_CLOSE_ALL, OBJPROP_STATE, false);
+      CloseAllTrades();
+      return;
+   }
+
+   if(EnableActionPanel && ObjectFind(0, BTN_CLOSE_BUY) >= 0 && ObjectGetInteger(0, BTN_CLOSE_BUY, OBJPROP_STATE))
+   {
+      ObjectSetInteger(0, BTN_CLOSE_BUY, OBJPROP_STATE, false);
+      CloseTradesByType(POSITION_TYPE_BUY);
+      return;
+   }
+
+   if(EnableActionPanel && ObjectFind(0, BTN_CLOSE_SELL) >= 0 && ObjectGetInteger(0, BTN_CLOSE_SELL, OBJPROP_STATE))
+   {
+      ObjectSetInteger(0, BTN_CLOSE_SELL, OBJPROP_STATE, false);
+      CloseTradesByType(POSITION_TYPE_SELL);
+      return;
+   }
+
+   if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0 && ObjectGetInteger(0, BTN_START_TS, OBJPROP_STATE))
+   {
+      ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
+      g_TrailingRuntimeEnabled = !g_TrailingRuntimeEnabled;
+      UpdatePanelState();
+      return;
+   }
+
+   if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0 && ObjectGetInteger(0, BTN_START_BE, OBJPROP_STATE))
+   {
+      ObjectSetInteger(0, BTN_START_BE, OBJPROP_STATE, false);
+      g_BeRuntimeEnabled = !g_BeRuntimeEnabled;
       UpdatePanelState();
       return;
    }
@@ -783,7 +834,7 @@ void CreateOrResetEntryLines(int direction)
    ObjectSetInteger(0, LINE_SL, OBJPROP_SELECTED, true);
    ObjectSetInteger(0, LINE_SL, OBJPROP_BACK, true);   // <-- send to back
    ObjectSetInteger(0, LINE_SL, OBJPROP_ZORDER, 1);
-   
+
 
    ObjectCreate(0, LINE_TP, OBJ_HLINE, 0, 0, tpPrice);
    ObjectSetInteger(0, LINE_TP, OBJPROP_COLOR, clrMediumSeaGreen);
@@ -987,6 +1038,12 @@ void CreatePanel()
    ObjectDelete(0, EDIT_SIZE);
    ObjectDelete(0, BTN_SEND);
    ObjectDelete(0, BTN_CANCEL);
+   ObjectDelete(0, PANEL2_BG);
+   ObjectDelete(0, BTN_CLOSE_ALL);
+   ObjectDelete(0, BTN_CLOSE_BUY);
+   ObjectDelete(0, BTN_CLOSE_SELL);
+   ObjectDelete(0, BTN_START_TS);
+   ObjectDelete(0, BTN_START_BE);
 
    //--- panel background (slightly smaller for reduced padding)
    ObjectCreate(0, PANEL_BG, OBJ_RECTANGLE_LABEL, 0, 0, 0);
@@ -1089,6 +1146,29 @@ void CreatePanel()
    ObjectSetInteger(0, BTN_CANCEL, OBJPROP_STATE, false);
    ObjectSetInteger(0, BTN_CANCEL,OBJPROP_ZORDER, 1000);
 
+   if(EnableActionPanel)
+   {
+      int panel2Y = PanelY + 108;
+
+      ObjectCreate(0, PANEL2_BG, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_XDISTANCE, PanelX);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_YDISTANCE, panel2Y);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_XSIZE, 250);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_YSIZE, 126);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_BGCOLOR, 0x2A170F);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_COLOR, 0x54422F);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_WIDTH, 1);
+      ObjectSetInteger(0, PANEL2_BG, OBJPROP_ZORDER, 900);
+
+      CreatePanelButton(BTN_CLOSE_ALL, "Close All", PanelX + 6, panel2Y + 8, 237, 28, 0x54422F, clrWhite, 11);
+      CreatePanelButton(BTN_CLOSE_BUY, "Close Buy", PanelX + 6, panel2Y + 42, 116, 32, 0x54422F, clrWhite, 11);
+      CreatePanelButton(BTN_CLOSE_SELL, "Close Sell", PanelX + 127, panel2Y + 42, 116, 32, 0x54422F, clrWhite, 11);
+      CreatePanelButton(BTN_START_TS, "Start TS", PanelX + 6, panel2Y + 80, 116, 32, 0x1E90FF, clrWhite, 10);
+      CreatePanelButton(BTN_START_BE, "Start BE", PanelX + 127, panel2Y + 80, 116, 32, 0x1E90FF, clrWhite, 10);
+   }
+
    //--- update panel state
    UpdatePanelState();
 }
@@ -1119,7 +1199,7 @@ void UpdatePanelState()
       ObjectSetString(0, BTN_SEND, OBJPROP_TEXT, modeTradeText);
       color modeBtnColor;
       color modeBtnBorder;
-      
+
       // --- CANCEL mode (highest priority)
       if(isCancelMode)
       {
@@ -1129,13 +1209,13 @@ void UpdatePanelState()
       // --- PENDING mode
       else if(g_UsePendingMode)
       {
-         modeBtnColor  = 0x1E90FF; 
+         modeBtnColor  = 0x1E90FF;
          modeBtnBorder = 0x1E90FF;
       }
       // --- MARKET mode
       else
       {
-         modeBtnColor  = 0x6B8E23; 
+         modeBtnColor  = 0x6B8E23;
          modeBtnBorder = 0x6B8E23;
       }
       ObjectSetInteger(0, BTN_SEND, OBJPROP_BGCOLOR, modeBtnColor);
@@ -1143,6 +1223,12 @@ void UpdatePanelState()
    }
    if(ObjectFind(0, BTN_CANCEL) >= 0)
       ObjectSetString(0, BTN_CANCEL, OBJPROP_TEXT, actionText);
+
+   if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0)
+      ObjectSetString(0, BTN_START_TS, OBJPROP_TEXT, g_TrailingRuntimeEnabled ? "Stop TS" : "Start TS");
+
+   if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0)
+      ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, g_BeRuntimeEnabled ? "Stop BE" : "Start BE");
 
    if(EntryLinesExist())
       UpdateEntryLineLabels();
@@ -1160,6 +1246,12 @@ void DeletePanel()
    ObjectDelete(0, EDIT_SIZE);
    ObjectDelete(0, BTN_SEND);
    ObjectDelete(0, BTN_CANCEL);
+   ObjectDelete(0, PANEL2_BG);
+   ObjectDelete(0, BTN_CLOSE_ALL);
+   ObjectDelete(0, BTN_CLOSE_BUY);
+   ObjectDelete(0, BTN_CLOSE_SELL);
+   ObjectDelete(0, BTN_START_TS);
+   ObjectDelete(0, BTN_START_BE);
 }
 
 //+------------------------------------------------------------------+
@@ -1196,7 +1288,7 @@ bool ModifyPositionSLTP(ulong position_ticket, double sl_new, double tp_new)
 }
 
 //+------------------------------------------------------------------+
-void CloseAllTrades(bool filterByMagic = true)
+void CloseAllTrades(bool filterByMagic)
 {
    int total = PositionsTotal();
    for(int i = total - 1; i >= 0; i--)
@@ -1220,6 +1312,40 @@ void CloseAllTrades(bool filterByMagic = true)
          PrintFormat("✅ Closed position %I64u on %s (%.2f lots)", ticket, symbol, volume);
       else
          PrintFormat("⚠️ Failed to close position %I64u (%s). Error=%d", ticket, symbol, GetLastError());
+
+      Sleep(200);
+   }
+}
+
+//+------------------------------------------------------------------+
+void CloseTradesByType(long positionType, bool filterByMagic)
+{
+   int total = PositionsTotal();
+   for(int i = total - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0)
+         continue;
+      if(!PositionSelectByTicket(ticket))
+         continue;
+
+      if((long)PositionGetInteger(POSITION_TYPE) != positionType)
+         continue;
+
+      long pos_magic = (long)PositionGetInteger(POSITION_MAGIC);
+      if(filterByMagic && MagicNumber != 0 && pos_magic != MagicNumber)
+         continue;
+
+      string symbol = PositionGetString(POSITION_SYMBOL);
+      double volume = PositionGetDouble(POSITION_VOLUME);
+      bool closed = trade.PositionClose(symbol);
+
+      if(closed)
+         PrintFormat("✅ Closed %s position %I64u on %s (%.2f lots)",
+                     positionType == POSITION_TYPE_BUY ? "BUY" : "SELL", ticket, symbol, volume);
+      else
+         PrintFormat("⚠️ Failed to close %s position %I64u (%s). Error=%d",
+                     positionType == POSITION_TYPE_BUY ? "BUY" : "SELL", ticket, symbol, GetLastError());
 
       Sleep(200);
    }
