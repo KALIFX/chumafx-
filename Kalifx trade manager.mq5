@@ -91,6 +91,8 @@ double g_RiskPercent = 1.0;
 double g_FixedLot    = 0.10;
 bool   g_BeRuntimeEnabled = true;
 bool   g_TrailingRuntimeEnabled = false;
+bool   g_ForceBEStart = false;
+bool   g_ForceTSStart = false;
 
 int    g_PendingDirection = 0; // 1=buy, -1=sell, 0=none
 
@@ -116,6 +118,7 @@ string LABEL_ENTRY   = "KFX_LABEL_ENTRY";
 
 void CloseAllTrades(bool filterByMagic = true);
 void CloseTradesByType(long positionType, bool filterByMagic = true);
+void ManageOpenPositions();
 void CreatePanelButton(const string name,
                        const string text,
                        const int x,
@@ -273,8 +276,12 @@ void CheckEquityProtection()
 void OnTick()
 {
    CheckEquityProtection();
+   ManageOpenPositions();
+}
 
-
+//+------------------------------------------------------------------+
+void ManageOpenPositions()
+{
    string sym = _Symbol;
    double point = _Point;
    int digits = (int)_Digits;
@@ -410,7 +417,7 @@ void OnTick()
       if(g_BeRuntimeEnabled && EnableBE)
       {
          double beTrigger = distanceToTP * BE_TP_Percent / 100.0;
-         if(profitDistance >= beTrigger)
+         if(g_ForceBEStart || profitDistance >= beTrigger)
          {
             double newSL;
             if(pos_type == POSITION_TYPE_BUY)
@@ -445,7 +452,7 @@ void OnTick()
       {
          double startDistance = TS_StartPoints * point;
 
-         if(profitDistance >= startDistance)
+         if(g_ForceTSStart || profitDistance >= startDistance)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -476,7 +483,7 @@ void OnTick()
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
-         if(profitDistance >= tsTrigger)
+         if(g_ForceTSStart || profitDistance >= tsTrigger)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -505,6 +512,9 @@ void OnTick()
          }
       }
    }
+
+   g_ForceBEStart = false;
+   g_ForceTSStart = false;
 }
 
 //+------------------------------------------------------------------+
@@ -586,7 +596,17 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0 && ObjectGetInteger(0, BTN_START_TS, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
-      g_TrailingRuntimeEnabled = !g_TrailingRuntimeEnabled;
+      if(g_TrailingRuntimeEnabled)
+      {
+         g_TrailingRuntimeEnabled = false;
+         g_ForceTSStart = false;
+      }
+      else
+      {
+         g_TrailingRuntimeEnabled = true;
+         g_ForceTSStart = true; // override start threshold one time
+         ManageOpenPositions();  // apply immediately on click
+      }
       UpdatePanelState();
       return;
    }
@@ -594,7 +614,17 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0 && ObjectGetInteger(0, BTN_START_BE, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_BE, OBJPROP_STATE, false);
-      g_BeRuntimeEnabled = !g_BeRuntimeEnabled;
+      if(g_BeRuntimeEnabled)
+      {
+         g_BeRuntimeEnabled = false;
+         g_ForceBEStart = false;
+      }
+      else
+      {
+         g_BeRuntimeEnabled = true;
+         g_ForceBEStart = true; // override BE start threshold one time
+         ManageOpenPositions(); // apply immediately on click
+      }
       UpdatePanelState();
       return;
    }
