@@ -596,17 +596,9 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0 && ObjectGetInteger(0, BTN_START_TS, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
-      if(g_TrailingRuntimeEnabled)
-      {
-         g_TrailingRuntimeEnabled = false;
-         g_ForceTSStart = false;
-      }
-      else
-      {
-         g_TrailingRuntimeEnabled = true;
-         g_ForceTSStart = true; // override start threshold one time
-         ManageOpenPositions();  // apply immediately on click
-      }
+      g_TrailingRuntimeEnabled = true; // keep TS runtime enabled
+      g_ForceTSStart = true;           // force immediate TS start once
+      ManageOpenPositions();           // apply immediately on click
       UpdatePanelState();
       return;
    }
@@ -1282,7 +1274,7 @@ void UpdatePanelState()
       ObjectSetString(0, BTN_CANCEL, OBJPROP_TEXT, actionText);
 
    if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0)
-      ObjectSetString(0, BTN_START_TS, OBJPROP_TEXT, g_TrailingRuntimeEnabled ? "Stop TS" : "Start TS");
+      ObjectSetString(0, BTN_START_TS, OBJPROP_TEXT, "Start TS");
 
    if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0)
       ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, "Start BE");
