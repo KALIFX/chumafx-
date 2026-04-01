@@ -148,6 +148,8 @@ int OnInit()
    g_FixedLot    = MathMax(0.01, DefaultFixedLot);
    g_BeRuntimeEnabled = EnableBE;
    g_TrailingRuntimeEnabled = (EnableTrailingPoints || EnableTrailingPercent);
+   if(EnableTrailingPoints && EnableTrailingPercent)
+      Print("ℹ️ Both trailing modes are enabled. Points-based mode will be used.");
 
    trade.SetExpertMagicNumber((uint)MagicNumber);
    trade.SetDeviationInPoints(SlippagePoints);
@@ -448,7 +450,10 @@ void ManageOpenPositions()
          }
       }
 
-      if(g_TrailingRuntimeEnabled && EnableTrailingPoints)
+      bool useTSPointsMode = EnableTrailingPoints;
+      bool useTSPercentMode = (!useTSPointsMode && EnableTrailingPercent);
+
+      if(g_TrailingRuntimeEnabled && useTSPointsMode)
       {
          double startDistance = TS_StartPoints * point;
 
@@ -479,7 +484,7 @@ void ManageOpenPositions()
          }
       }
 
-      if(g_TrailingRuntimeEnabled && EnableTrailingPercent)
+      if(g_TrailingRuntimeEnabled && useTSPercentMode)
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
