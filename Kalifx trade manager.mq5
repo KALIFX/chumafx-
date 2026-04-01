@@ -484,7 +484,7 @@ void ManageOpenPositions()
          }
       }
 
-      if(g_TrailingRuntimeEnabled && EnableTrailingPercent)
+      if(g_TrailingRuntimeEnabled && (EnableTrailingPercent || g_TSPercentStartOverridden || g_ForceTSStart))
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
@@ -602,11 +602,6 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0 && ObjectGetInteger(0, BTN_START_TS, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
-      if(!EnableTrailingPercent)
-      {
-         Print("⚠️ Start TS button uses '% of TP Based' mode. Please enable EnableTrailingPercent.");
-         return;
-      }
       g_TrailingRuntimeEnabled = true;   // keep TS runtime enabled
       g_TSPercentStartOverridden = true; // override % trailing start threshold after click
       g_ForceTSStart = true;           // force immediate TS start once
@@ -1228,7 +1223,7 @@ void CreatePanel()
       CreatePanelButton(BTN_CLOSE_BUY, "Close Buy", PanelX + 6, panel2Y + 42, 116, 32, 0x54422F, clrWhite, 11);
       CreatePanelButton(BTN_CLOSE_SELL, "Close Sell", PanelX + 127, panel2Y + 42, 116, 32, 0x54422F, clrWhite, 11);
       CreatePanelButton(BTN_START_TS, "Start TS", PanelX + 6, panel2Y + 80, 116, 32, 0x1E90FF, clrWhite, 10);
-      CreatePanelButton(BTN_START_BE, "Start BE", PanelX + 127, panel2Y + 80, 116, 32, 0x1E90FF, clrWhite, 10);
+      CreatePanelButton(BTN_START_BE, "Set BE", PanelX + 127, panel2Y + 80, 116, 32, 0x1E90FF, clrWhite, 10);
    }
 
    //--- update panel state
@@ -1290,7 +1285,7 @@ void UpdatePanelState()
       ObjectSetString(0, BTN_START_TS, OBJPROP_TEXT, "Start TS");
 
    if(EnableActionPanel && ObjectFind(0, BTN_START_BE) >= 0)
-      ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, "Start BE");
+      ObjectSetString(0, BTN_START_BE, OBJPROP_TEXT, "Set BE");
 
    if(EntryLinesExist())
       UpdateEntryLineLabels();
