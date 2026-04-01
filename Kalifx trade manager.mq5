@@ -93,6 +93,7 @@ bool   g_BeRuntimeEnabled = true;
 bool   g_TrailingRuntimeEnabled = false;
 bool   g_ForceBEStart = false;
 bool   g_ForceTSStart = false;
+bool   g_TSStartOverridden = false;
 
 int    g_PendingDirection = 0; // 1=buy, -1=sell, 0=none
 
@@ -148,6 +149,7 @@ int OnInit()
    g_FixedLot    = MathMax(0.01, DefaultFixedLot);
    g_BeRuntimeEnabled = EnableBE;
    g_TrailingRuntimeEnabled = (EnableTrailingPoints || EnableTrailingPercent);
+   g_TSStartOverridden = false;
    if(EnableTrailingPoints && EnableTrailingPercent)
       Print("ℹ️ Both trailing modes are enabled. Points-based mode will be used.");
 
@@ -457,7 +459,7 @@ void ManageOpenPositions()
       {
          double startDistance = TS_StartPoints * point;
 
-         if(g_ForceTSStart || profitDistance >= startDistance)
+         if(g_TSStartOverridden || g_ForceTSStart || profitDistance >= startDistance)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -488,7 +490,7 @@ void ManageOpenPositions()
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
-         if(g_ForceTSStart || profitDistance >= tsTrigger)
+         if(g_TSStartOverridden || g_ForceTSStart || profitDistance >= tsTrigger)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -602,6 +604,7 @@ void ProcessPanelButtonStates()
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
       g_TrailingRuntimeEnabled = true; // keep TS runtime enabled
+      g_TSStartOverridden = true;      // override trailing start thresholds after click
       g_ForceTSStart = true;           // force immediate TS start once
       ManageOpenPositions();           // apply immediately on click
       UpdatePanelState();
