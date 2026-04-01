@@ -418,7 +418,7 @@ void ManageOpenPositions()
          }
       }
 
-      if(g_BeRuntimeEnabled && EnableBE)
+      if(g_BeRuntimeEnabled && (EnableBE || g_ForceBEStart))
       {
          double beTrigger = distanceToTP * BE_TP_Percent / 100.0;
          if(g_ForceBEStart || profitDistance >= beTrigger)
