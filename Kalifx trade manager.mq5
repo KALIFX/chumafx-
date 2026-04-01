@@ -20,6 +20,7 @@ input string sepBE            = "=== BreakEven Settings ==="; //===
 input bool   EnableBE         = true;     // Enable BE?
 input double BE_TP_Percent    = 60.0;     // BE % of Take Profit
 input int    BE_OffsetPoints  = 20;       // BE offset in points
+input int    StartBE_ButtonOffsetPoints = 10; // Start BE button offset in points
 
 // ==============================================
 // 🔷 TRAILING STOP – POINT BASED
@@ -93,7 +94,8 @@ bool   g_BeRuntimeEnabled = true;
 bool   g_TrailingRuntimeEnabled = false;
 bool   g_ForceBEStart = false;
 bool   g_ForceTSStart = false;
-bool   g_TSStartOverridden = false;
+bool   g_TSPercentStartOverridden = false;
+bool   g_UseStartBEButtonOffset = false;
 
 int    g_PendingDirection = 0; // 1=buy, -1=sell, 0=none
 
@@ -149,9 +151,7 @@ int OnInit()
    g_FixedLot    = MathMax(0.01, DefaultFixedLot);
    g_BeRuntimeEnabled = EnableBE;
    g_TrailingRuntimeEnabled = (EnableTrailingPoints || EnableTrailingPercent);
-   g_TSStartOverridden = false;
-   if(EnableTrailingPoints && EnableTrailingPercent)
-      Print("ℹ️ Both trailing modes are enabled. Points-based mode will be used.");
+   g_TSPercentStartOverridden = false;
 
    trade.SetExpertMagicNumber((uint)MagicNumber);
    trade.SetDeviationInPoints(SlippagePoints);
@@ -424,10 +424,11 @@ void ManageOpenPositions()
          if(g_ForceBEStart || profitDistance >= beTrigger)
          {
             double newSL;
+            int beOffset = g_UseStartBEButtonOffset ? StartBE_ButtonOffsetPoints : BE_OffsetPoints;
             if(pos_type == POSITION_TYPE_BUY)
-               newSL = NormalizeDouble(openPrice + (BE_OffsetPoints * point), digits);
+               newSL = NormalizeDouble(openPrice + (beOffset * point), digits);
             else
-               newSL = NormalizeDouble(openPrice - (BE_OffsetPoints * point), digits);
+               newSL = NormalizeDouble(openPrice - (beOffset * point), digits);
 
             bool shouldModify = false;
             if(pos_type == POSITION_TYPE_BUY)
@@ -452,14 +453,11 @@ void ManageOpenPositions()
          }
       }
 
-      bool useTSPointsMode = EnableTrailingPoints;
-      bool useTSPercentMode = (!useTSPointsMode && EnableTrailingPercent);
-
-      if(g_TrailingRuntimeEnabled && useTSPointsMode)
+      if(g_TrailingRuntimeEnabled && EnableTrailingPoints)
       {
          double startDistance = TS_StartPoints * point;
 
-         if(g_TSStartOverridden || g_ForceTSStart || profitDistance >= startDistance)
+         if(profitDistance >= startDistance)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -486,11 +484,11 @@ void ManageOpenPositions()
          }
       }
 
-      if(g_TrailingRuntimeEnabled && useTSPercentMode)
+      if(g_TrailingRuntimeEnabled && EnableTrailingPercent)
       {
          double tsTrigger = distanceToTP * TS_StartTPPercent / 100.0;
 
-         if(g_TSStartOverridden || g_ForceTSStart || profitDistance >= tsTrigger)
+         if(g_TSPercentStartOverridden || g_ForceTSStart || profitDistance >= tsTrigger)
          {
             if(pos_type == POSITION_TYPE_BUY)
             {
@@ -522,6 +520,7 @@ void ManageOpenPositions()
 
    g_ForceBEStart = false;
    g_ForceTSStart = false;
+   g_UseStartBEButtonOffset = false;
 }
 
 //+------------------------------------------------------------------+
@@ -603,8 +602,13 @@ void ProcessPanelButtonStates()
    if(EnableActionPanel && ObjectFind(0, BTN_START_TS) >= 0 && ObjectGetInteger(0, BTN_START_TS, OBJPROP_STATE))
    {
       ObjectSetInteger(0, BTN_START_TS, OBJPROP_STATE, false);
-      g_TrailingRuntimeEnabled = true; // keep TS runtime enabled
-      g_TSStartOverridden = true;      // override trailing start thresholds after click
+      if(!EnableTrailingPercent)
+      {
+         Print("⚠️ Start TS button uses '% of TP Based' mode. Please enable EnableTrailingPercent.");
+         return;
+      }
+      g_TrailingRuntimeEnabled = true;   // keep TS runtime enabled
+      g_TSPercentStartOverridden = true; // override % trailing start threshold after click
       g_ForceTSStart = true;           // force immediate TS start once
       ManageOpenPositions();           // apply immediately on click
       UpdatePanelState();
@@ -615,6 +619,7 @@ void ProcessPanelButtonStates()
    {
       ObjectSetInteger(0, BTN_START_BE, OBJPROP_STATE, false);
       g_BeRuntimeEnabled = true;  // ensure BE logic remains enabled
+      g_UseStartBEButtonOffset = true;
       g_ForceBEStart = true;      // force immediate BE+offset application
       ManageOpenPositions();      // apply immediately on click
       UpdatePanelState();
