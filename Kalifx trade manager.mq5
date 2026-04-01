@@ -296,6 +296,7 @@ void ManageOpenPositions()
    double Ask = SymbolInfoDouble(sym, SYMBOL_ASK);
 
    int total = PositionsTotal();
+   bool hasManagedPosition = false;
    for(int idx = total - 1; idx >= 0; idx--)
    {
       ulong ticket = PositionGetTicket(idx);
@@ -312,6 +313,8 @@ void ManageOpenPositions()
       long pos_magic = PositionGetInteger(POSITION_MAGIC);
       if(MagicNumber != 0 && (int)pos_magic != MagicNumber)
          continue;
+
+      hasManagedPosition = true;
 
       long   pos_type   = PositionGetInteger(POSITION_TYPE);
       double openPrice  = PositionGetDouble(POSITION_PRICE_OPEN);
@@ -521,6 +524,8 @@ void ManageOpenPositions()
    g_ForceBEStart = false;
    g_ForceTSStart = false;
    g_UseStartBEButtonOffset = false;
+   if(!hasManagedPosition)
+      g_TSPercentStartOverridden = false; // reset Start TS override after trade cycle ends
 }
 
 //+------------------------------------------------------------------+
